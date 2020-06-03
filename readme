@@ -1,0 +1,49 @@
+/*
+  使用C语言采用epoll网络模型et模式下实现的网络服务器
+*/
+
+/*
+  并发测试:  使用jmeter启动10000个线程连接后发送1024字节,服务器接收完成第一个套接字的包至最后一个套接字的包为止在 1.5~2.5秒之间浮动
+            测试40000线程则在11秒之间浮动,两种并发测试包含了客户端创建线程的开销.
+       附:   服务器开发的瓶颈并不在连接数量
+*/
+
+//sock_session 结构如下
+struct sock_session {
+	int fd;
+
+	int flag;					//session flag
+	int epoll_state;			//epoll state flag
+	uint64_t last_active;	//last active time
+	char ping;
+	
+	uint16_t port;
+	char ip[32];
+
+	uint32_t recv_idx;
+	uint32_t recv_len;
+	char recv_buf[MAX_RECV_BUF];
+
+	uint32_t send_len;
+	char send_buf[MAX_SEND_BUF];
+
+	void (*on_recv_cb)(struct sock_manager*, struct sock_session*);
+	void (*on_protocol_recv_cb)(struct sock_manager*, struct sock_session*);
+	void (*on_protocol_ping_cb)(struct sock_manager*, struct sock_session*);
+	void (*complate_pkg_cb)(struct sock_manager*, struct sock_session*, char*, unsigned int);
+	int (*on_protocol_send_cb)(struct sock_manager*, struct sock_session*, const char*, unsigned int);
+	void (*disconn_event_cb)(struct sock_manager*, struct sock_session*);
+
+	void* user_data;
+
+	struct sock_session* next;
+};
+
+/*
+  内置完成对tcp & binary, tcp & json, websock(ws) 的协议支持,此处并没有完成wss的握手协议(共产党留给战士的时间不多了,且接触项目中少有需要的)
+  完成了对上诉三种上层协议的组包解包,以及对粘包分包的处理,同时完成对不同协议的客户端心跳检测
+  用户可通过修改回调来修改每个sock_session的行为,延迟回收套接字,在线用户广播数据
+  对每个sock_session皆可以自定义对应的解包回调(旨在用于例如使用socketpair传输用户自定义数据时按照用户自定义协议使用数据等...)
+  默认为反应堆模式,可根据complate_pkg_cb的实现变更为反应堆模式或前摄器模式
+  预留了websocket根据url或协议名等不同对应不同的回调响应函数,但由于作者没有需求则暂时没有加上，如后续由需要将会更新它
+*/
