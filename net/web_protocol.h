@@ -10,7 +10,7 @@ struct sock_session;
 struct session_manager;
 struct ws_frame_protocol;
 
-unsigned int hash_func(const char* char_key, int klen);
+
 
 /*保证协议头完整下使用*/
 //void web_decode_protocol(const char* frame, struct ws_frame_protocol* out_buf);

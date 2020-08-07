@@ -20,29 +20,6 @@ struct ws_frame_protocol {
 	unsigned int payload_len;
 };
 
-unsigned int hash_func(const char* char_key, int klen)
-{
-	unsigned int hash = 0;
-	const unsigned char* key = (const unsigned char*)char_key;
-	const unsigned char* p;
-	int i;
-	if (!key) return hash;
-
-	if (klen == -1) {
-		for (p = key; *p; p++) {
-			hash = hash * 33 + tolower(*p);
-		}
-		klen = p - key;
-	}
-	else {
-		for (p = key, i = klen; i; i--, p++) {
-			hash = hash * 33 + tolower(*p);
-		}
-	}
-
-	return hash;
-}
-
 static void web_decode_data(const char* mask_arr, char* data, unsigned int data_len) {
 	for (int i = 0; i < data_len; ++i) {
 		data[i] ^= mask_arr[i & 3];
@@ -156,10 +133,11 @@ static int web_handshake(struct sock_manager* sm, struct sock_session* ss, const
 	char sec_ws_key[64];
 	char sha1[24] = { 0 };
 	char b64[32] = { 0 };
+
 	strcpy(sec_ws_key, sec_key);
 	strcat(sec_ws_key, RFC6455);
 	sz_sha1(sec_ws_key, strlen(sec_ws_key), sha1);
-	base64_encode(sha1, strlen(sha1), b64);
+	base64_encode(sha1, 20, b64);
 
 	sprintf(ss->send_buf + ss->send_len, "HTTP/1.1 101 Switching Protocols\r\n" \
 		"Upgrade: websocket\r\n" \
