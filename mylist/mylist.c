@@ -3,10 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+//#include "mylog.h"
+
 #define my_malloc malloc
 #define my_free free
 
-#define DEFAULT_SIZE (2)
+#define DEFAULT_SIZE (1024)
 
 struct tlist* tl_create() {
 	struct tlist* tl = my_malloc(sizeof(struct tlist));
@@ -45,40 +47,33 @@ void tl_delete(struct tlist* tl) {
 }
 
 static struct tlist_element* resize_cache(struct tlist* tl) {
+	struct tlist_element* te;
 	struct tlist_element* old_cache = tl->cache;
 	struct tlist_element* old_tail = tl->tail;
-	struct tlist_element* te;
+
+	/*init mem_cache*/
 	struct tlist_element* new_cache = my_malloc(sizeof(struct tlist_element) * tl->cache_size * 2);
-	if (new_cache) {
-		memset(new_cache, 0, sizeof(struct tlist_element) * tl->cache_size * 2);
-		for (int i = 0; i < tl->cache_size * 2; ++i) {
-			(new_cache + i)->next = tl->free;
-			tl->free = (new_cache + i);
-		}
+	tl->head = 0;
+	tl->tail = 0;
+	tl->elem_size = 0;
+	tl->cache = new_cache;
+	tl->cache_size *= 2;
+	tl->free = 0;
 
-		tl->head = 0;
-		tl->tail = 0;
-
-		while (old_tail) {
-			te = tl->free;
-			tl->free = tl->free->next;
-
-			te->value = old_tail->value;
-			if (te->next = tl->head) {
-				tl->head->prev = te;
-				tl->head = te;
-			}
-			else {
-				te->prev = 0;
-				tl->head = tl->tail = te;
-			}
-			old_tail = old_tail->prev;
-		}
-		tl->cache = new_cache;
-		tl->cache_size = tl->cache_size * 2;
-		my_free(old_cache);
-		return tl->cache;
+	for (int i = 0; i < tl->cache_size; ++i) {
+		(new_cache + i)->next = tl->free;
+		tl->free = (new_cache + i);
 	}
+
+	
+
+	while (old_tail) {
+		tl_insert_head(tl, old_tail->value);
+		old_tail = old_tail->prev;
+	}
+
+	my_free(old_cache);
+	return tl->cache;
 	return 0;
 }
 
@@ -106,6 +101,8 @@ static void free_elem(struct tlist* tl, struct tlist_element* te) {
 }
 
 void tl_insert_head(struct tlist* tl, void* var) {
+	if (!var) { return; }
+
 	struct tlist_element* te = cache_elem(tl);
 	if (te) {
 		te->prev = 0;
@@ -122,6 +119,8 @@ void tl_insert_head(struct tlist* tl, void* var) {
 }
 
 void tl_insert_tail(struct tlist* tl, void* var) {
+	if (!var) { return; }
+
 	struct tlist_element* te = cache_elem(tl);
 	if (te) {
 
@@ -249,4 +248,18 @@ uint32_t tl_get_size(struct tlist* tl) {
 
 void* tl_get_value(struct tlist_element* te) {
 	return te->value;
+}
+
+struct tlist_element* tl_head(struct tlist* tl) {
+	if (tl) {
+		return tl->head;
+	}
+	return 0;
+}
+
+struct tlist_element* tl_tail(struct tlist* tl) {
+	if (tl) {
+		return tl->tail;
+	}
+	return 0;
 }

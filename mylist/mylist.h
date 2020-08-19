@@ -48,6 +48,10 @@ uint32_t tl_get_size(struct tlist* tl);
 
 void* tl_get_value(struct tlist_element* te);
 
+struct tlist_element* tl_head(struct tlist* tl);
+
+struct tlist_element* tl_tail(struct tlist* tl);
+
 
 #ifdef __cplusplus
 }

@@ -20,7 +20,7 @@ struct ws_frame_protocol;
 //合并的相邻两帧数据到前一帧(若在除此之外的地方使用，需要保证上一帧数据末尾长度够长且内存连续，或者也可以将memmove修改为memcpy之后使用)
 //int web_merge_protocol(struct ws_frame_protocol* in_prev_buf, struct ws_frame_protocol* in_cur_buf, unsigned char is_fin);
 
-//void web_parse_head(struct sock_manager* sm, struct sock_session* ss, char* data, unsigned short data_len);
+void web_parse_head(struct sock_manager* sm, struct sock_session* ss, char* data, unsigned short data_len);
 
 //int web_handshake(struct sock_manager* sm, struct sock_session* ss, const char* url, const char* host, const char* origin, const char* sec_key, const char* sec_version);
 

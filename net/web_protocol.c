@@ -10,6 +10,8 @@
 
 #define RFC6455 "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
+
+
 struct ws_frame_protocol {
 	char fin;
 	char opcode;
@@ -155,15 +157,16 @@ static int web_handshake(struct sock_manager* sm, struct sock_session* ss, const
 }
 
 //handshake function
-static void web_parse_head(struct sock_manager* sm, struct sock_session* ss,char* data,unsigned short len) {
+//static void web_parse_head(struct sock_manager* sm, struct sock_session* ss,char* data,unsigned short len) {
+void web_parse_head(struct sock_manager* sm, struct sock_session* ss, char* data, unsigned short len) {
 	unsigned int total = 0, head_idx = 0, tail_idx = 0, line_len,key_hash;
 	const char* fs_ptr = 0, *fe_ptr = 0;
 
 	char key[128];
-	char var[128];
+	char var[1024];
 	char host[128];
 	char origin[128];
-	char secwskey[64];
+	char secwskey[128];
 	char secwsver[32];
 
 	char url[256] = { 0 };
@@ -514,11 +517,8 @@ void web_json_protocol_recv(struct sock_manager* sm, struct sock_session* ss) {
 		if (ss->recv_len > 4) {
 			while ((total + len) < ss->recv_len - 3) {
 				if (*((int*)(ss->recv_buf + total + len)) == 0x0A0D0A0D) {
-					printf("begin handshake\n");
 					*(ss->recv_buf + total + len + 4) = 0;
-					printf("\n handshake info\n%s\n", ss->recv_buf + total);
 					web_parse_head(sm, ss, ss->recv_buf + total, len + 4);
-					printf("end handshake\n");
 					total += (len + 4);
 					len = 0;
 					break;

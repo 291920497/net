@@ -1,17 +1,19 @@
 #ifndef _SOCK_SESSION_H_
 #define _SOCK_SESSION_H_
 
+#include <stdio.h>
 #include <stdint.h>
+//#include <list>
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-#define MAX_SESSION (10240)
-#define MAX_EPOLL_SIZE (4096)
+#define MAX_SESSION (256)
+#define MAX_EPOLL_SIZE (512)
 
-#define MAX_RECV_BUF (8192)
+#define MAX_RECV_BUF (512*1024)
 #define MAX_SEND_BUF (16384)
 
 #define MAX_HEART_TIMEOUT (10)
@@ -26,6 +28,8 @@ enum {
 	SESSION_FLAG_BINA = (1 << 7),
 
 	SESSION_FLAG_HANDSHAKE = (1 << 16),
+
+	SESSION_FLAG_USER = (1 << 24),
 };
 
 enum {
@@ -93,12 +97,14 @@ struct sock_manager {
 };
 
 //test
-//#include <time.h>
-//
-//extern struct timeval t_begin;
-//extern struct timeval t_end;
+#include <time.h>
+
+extern struct timeval t_begin;
+extern struct timeval t_end;
 
 int set_nonblocking(int fd);
+
+unsigned int hash_func(const char* char_key, int klen);
 
 struct sock_manager* init_session_mng();
 

@@ -1,5 +1,5 @@
 #include "mylist.h"
-#include "timer_list.h"
+//#include "timer_list.h"
 #include "tcp_protocol.h"
 #include "web_protocol.h"
 #include "sock_session.h"
@@ -96,9 +96,9 @@ static void accept_cb(struct sock_manager* sm, struct sock_session* ss) {
 	if (ret) {
 		printf("accept client ip: [%s:%d] failed\n", ip, port);
 	}
-	else {
+	/*else {
 		printf("accept success ip: [%s:%d] fd: [%d]\n", ip, port, c_fd);
-	}
+	}*/
 }
 
 void on_heart_timeout(void* p) {
@@ -166,8 +166,32 @@ int set_nonblocking(int fd) {
 	return old_opt;
 }
 
+unsigned int hash_func(const char* char_key, int klen)
+{
+	unsigned int hash = 0;
+	const unsigned char* key = (const unsigned char*)char_key;
+	const unsigned char* p;
+	int i;
+	if (!key) return hash;
+
+	if (klen == -1) {
+		for (p = key; *p; p++) {
+			hash = hash * 33 + tolower(*p);
+		}
+		klen = p - key;
+	}
+	else {
+		for (p = key, i = klen; i; i--, p++) {
+			hash = hash * 33 + tolower(*p);
+		}
+	}
+
+	return hash;
+}
+
 struct sock_manager* init_session_mng() {
 	struct sock_manager* sm = (struct sock_manager*)sm_malloc(sizeof(struct sock_manager));
+	memset(sm, 0, sizeof(struct sock_manager));
 	if (sm) {
 		//TLIST_INIT(&(sm->pending_recv_fd));
 		//TLIST_INIT(&(sm->pending_send_fd));
@@ -225,7 +249,8 @@ init_failed:
 void exit_session_mng(struct sock_manager* sm) {
 	tl_delete(sm->tl_pending_recv);
 	tl_delete(sm->tl_pending_send);
-
+	destory_timer_list(sm->timer_ls);
+	
 	sm_free(sm->session_cache);
 	sm_free(sm);
 }
@@ -268,8 +293,8 @@ int ep_del_event(struct sock_manager* sm, struct sock_session* ss, unsigned int 
 }
 
 //test code
-//struct timeval t_begin;
-//struct timeval t_end;
+struct timeval t_begin;
+struct timeval t_end;
 
 void on_recv(struct sock_manager* sm, struct sock_session* ss) {
 	if (ss->flag & SESSION_FLAG_CLOSED) { return; }
@@ -303,12 +328,12 @@ void on_recv(struct sock_manager* sm, struct sock_session* ss) {
 		goto on_recv_failed;
 	}
 
-	//test time 此处用于测试高并发下的处理时间
-	/*if (t_begin.tv_sec == 0) {
+	//test time 此处用于测试并发
+	if (t_begin.tv_sec == 0) {
 		gettimeofday(&t_begin, 0);
 	}
 
-	gettimeofday(&t_end, 0);*/
+	gettimeofday(&t_end, 0);
 
 	//test end
 
@@ -516,10 +541,14 @@ int run(struct sock_manager* sm, unsigned long us) {
 	if (sm->tl_pending_recv->elem_size) {
 		for (struct tlist_element* te = sm->tl_pending_recv->head; te != 0; te = te->next) {
 			struct sock_session* ss = tl_get_value(te);
-			ss->on_recv_cb(sm, ss);
-			if (ss->on_protocol_recv_cb) {
-				ss->on_protocol_recv_cb(sm, ss);
+			if (ss) {
+				ss->on_recv_cb(sm, ss);
+				if (ss->on_protocol_recv_cb) {
+					ss->on_protocol_recv_cb(sm, ss);
+				}
 			}
+			
+			
 		}
 	}
 
@@ -560,7 +589,7 @@ void clear_online_closed_fd(struct sock_manager* sm) {
 				*walk = fss->next;
 
 				/*info*/
-				printf("close fd: [%d] ip: [%s:%d]\n",fss->fd, fss->ip,fss->port);
+				//printf("close fd: [%d] ip: [%s:%d]\n",fss->fd, fss->ip,fss->port);
 
 				close(fss->fd);
 				session_free(sm, fss);
